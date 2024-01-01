@@ -35,7 +35,9 @@ func (q *Queries) AddAccountBalance(ctx context.Context, arg AddAccountBalancePa
 }
 
 const createAccount = `-- name: CreateAccount :one
-INSERT INTO accounts (owner, balance, currency) VALUES ($1, $2, $3) RETURNING id, owner, balance, currency, created_at
+INSERT INTO accounts (owner, balance, currency)
+VALUES ($1, $2, $3)
+RETURNING id, owner, balance, currency, created_at
 `
 
 type CreateAccountParams struct {
@@ -58,7 +60,8 @@ func (q *Queries) CreateAccount(ctx context.Context, arg CreateAccountParams) (A
 }
 
 const deleteAccount = `-- name: DeleteAccount :exec
-DELETE FROM accounts
+DELETE
+FROM accounts
 WHERE id = $1
 `
 
@@ -68,8 +71,10 @@ func (q *Queries) DeleteAccount(ctx context.Context, id int64) error {
 }
 
 const getAccount = `-- name: GetAccount :one
-SELECT id, owner, balance, currency, created_at FROM accounts
-WHERE id = $1 LIMIT 1
+SELECT id, owner, balance, currency, created_at
+FROM accounts
+WHERE id = $1
+LIMIT 1
 `
 
 func (q *Queries) GetAccount(ctx context.Context, id int64) (Account, error) {
@@ -86,9 +91,10 @@ func (q *Queries) GetAccount(ctx context.Context, id int64) (Account, error) {
 }
 
 const getAccountForUpdate = `-- name: GetAccountForUpdate :one
-SELECT id, owner, balance, currency, created_at FROM accounts
-WHERE id = $1 LIMIT 1
-FOR UPDATE
+SELECT id, owner, balance, currency, created_at
+FROM accounts
+WHERE id = $1
+LIMIT 1 FOR NO KEY UPDATE
 `
 
 func (q *Queries) GetAccountForUpdate(ctx context.Context, id int64) (Account, error) {
@@ -104,11 +110,23 @@ func (q *Queries) GetAccountForUpdate(ctx context.Context, id int64) (Account, e
 	return i, err
 }
 
+const getAccountsTotalRows = `-- name: GetAccountsTotalRows :one
+SELECT COUNT(id)
+FROM accounts
+`
+
+func (q *Queries) GetAccountsTotalRows(ctx context.Context) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getAccountsTotalRows)
+	var count int64
+	err := row.Scan(&count)
+	return count, err
+}
+
 const listAccountsWithPagination = `-- name: ListAccountsWithPagination :many
-SELECT id, owner, balance, currency, created_at FROM accounts
+SELECT id, owner, balance, currency, created_at
+FROM accounts
 ORDER BY id
-LIMIT $1
-OFFSET $2
+LIMIT $1 OFFSET $2
 `
 
 type ListAccountsWithPaginationParams struct {
@@ -122,7 +140,7 @@ func (q *Queries) ListAccountsWithPagination(ctx context.Context, arg ListAccoun
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Account
+	items := []Account{}
 	for rows.Next() {
 		var i Account
 		if err := rows.Scan(
@@ -146,7 +164,8 @@ func (q *Queries) ListAccountsWithPagination(ctx context.Context, arg ListAccoun
 }
 
 const listAllAccounts = `-- name: ListAllAccounts :many
-SELECT id, owner, balance, currency, created_at FROM accounts
+SELECT id, owner, balance, currency, created_at
+FROM accounts
 ORDER BY id
 `
 
@@ -156,7 +175,7 @@ func (q *Queries) ListAllAccounts(ctx context.Context) ([]Account, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Account
+	items := []Account{}
 	for rows.Next() {
 		var i Account
 		if err := rows.Scan(
