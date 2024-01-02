@@ -77,7 +77,7 @@ func (q *Queries) ListAllTransfers(ctx context.Context) ([]Transfer, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Transfer
+	items := []Transfer{}
 	for rows.Next() {
 		var i Transfer
 		if err := rows.Scan(
@@ -127,7 +127,7 @@ func (q *Queries) ListTransfersWithPagination(ctx context.Context, arg ListTrans
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Transfer
+	items := []Transfer{}
 	for rows.Next() {
 		var i Transfer
 		if err := rows.Scan(

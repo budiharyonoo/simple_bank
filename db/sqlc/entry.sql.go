@@ -74,7 +74,7 @@ func (q *Queries) ListAllEntries(ctx context.Context) ([]Entry, error) {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Entry
+	items := []Entry{}
 	for rows.Next() {
 		var i Entry
 		if err := rows.Scan(
@@ -116,7 +116,7 @@ func (q *Queries) ListEntrysWithPagination(ctx context.Context, arg ListEntrysWi
 		return nil, err
 	}
 	defer rows.Close()
-	var items []Entry
+	items := []Entry{}
 	for rows.Next() {
 		var i Entry
 		if err := rows.Scan(
