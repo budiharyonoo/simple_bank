@@ -17,7 +17,7 @@ type GetListAccounts struct {
 func (server Server) getListAccounts(ctx *gin.Context) {
 	var req GetListAccounts
 
-	// Bind query params to the GetListAccounts struct
+	// Bind query params to the getListAccounts struct
 	if err := ctx.ShouldBind(&req); err != nil {
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
 		return
@@ -46,7 +46,7 @@ func (server Server) getListAccounts(ctx *gin.Context) {
 // CreateAccountRequest used for input payload request and validation
 type CreateAccountRequest struct {
 	Owner    string `json:"owner" binding:"required"`
-	Currency string `json:"currency" binding:"required,oneof=USD EUR"`
+	Currency string `json:"currency" binding:"required,currency"`
 }
 
 func (server Server) createAccount(ctx *gin.Context) {
