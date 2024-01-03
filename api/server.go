@@ -5,6 +5,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
+	"log"
 )
 
 // Server serves HTTP requests for our service
@@ -20,7 +21,11 @@ func NewServer(store db.Store) *Server {
 
 	// Register custom validator to GIN
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
-		v.RegisterValidation("currency", validCurrency)
+		err := v.RegisterValidation("currency", validCurrency)
+		if err != nil {
+			log.Fatalln("Error register custom validator", err)
+			return nil
+		}
 	}
 
 	router.GET("/", func(ctx *gin.Context) {
