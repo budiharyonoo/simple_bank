@@ -126,7 +126,7 @@ func TestGetAccountById(t *testing.T) {
 			tc.buildStubs(store)
 
 			// Start Mock HTTP Server
-			server := NewServer(store)
+			server := newTestServer(t, store)
 			recorder := httptest.NewRecorder()
 
 			// Create new HTTP Request to the Mock Server

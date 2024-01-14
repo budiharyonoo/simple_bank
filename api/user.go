@@ -1,6 +1,7 @@
 package api
 
 import (
+	"database/sql"
 	"errors"
 	db "github.com/budiharyonoo/simple_bank/db/sqlc"
 	"github.com/budiharyonoo/simple_bank/utils"
@@ -18,12 +19,22 @@ type createUserRequest struct {
 	Password string `json:"password" binding:"required,min=8"`
 }
 
-type createUserResponse struct {
+type userResponse struct {
 	Username          string    `json:"username"`
 	FullName          string    `json:"full_name"`
 	Email             string    `json:"email"`
 	PasswordChangedAt time.Time `json:"password_changed_at"`
 	CreatedAt         time.Time `json:"created_at"`
+}
+
+func newUserResponse(user db.User) *userResponse {
+	return &userResponse{
+		Username:          user.Username,
+		FullName:          user.FullName,
+		Email:             user.Email,
+		PasswordChangedAt: user.PasswordChangedAt,
+		CreatedAt:         user.CreatedAt,
+	}
 }
 
 func (server Server) createUser(ctx *gin.Context) {
@@ -65,12 +76,60 @@ func (server Server) createUser(ctx *gin.Context) {
 		return
 	}
 
-	userResp := createUserResponse{
-		Username:          user.Username,
-		FullName:          user.FullName,
-		Email:             user.Email,
-		PasswordChangedAt: user.PasswordChangedAt,
-		CreatedAt:         user.CreatedAt,
+	ctx.JSON(http.StatusCreated, newUserResponse(user))
+}
+
+// loginUserRequest used for input payload request and validation
+type loginUserRequest struct {
+	Username string `json:"username"  binding:"required,alphanum"`
+	Password string `json:"password" binding:"required,min=8"`
+}
+
+// loginUserResponse is for success API response
+type loginUserResponse struct {
+	AccessToken          string        `json:"access_token"`
+	AccessTokenExpiresAt time.Time     `json:"access_token_expires_at"`
+	User                 *userResponse `json:"user"`
+}
+
+func (server Server) loginUser(ctx *gin.Context) {
+	var req loginUserRequest
+
+	// Bind JSON payload to the createUserRequest struct
+	if err := ctx.ShouldBindJSON(&req); err != nil {
+		ctx.JSON(http.StatusUnprocessableEntity, errorResponse(err))
+		return
 	}
-	ctx.JSON(http.StatusCreated, userResp)
+
+	// Check if user exists
+	user, err := server.store.GetUser(ctx, req.Username)
+	if err != nil {
+		// If account not exists
+		if errors.Is(sql.ErrNoRows, err) {
+			ctx.JSON(http.StatusNotFound, errorResponse(err))
+			return
+		}
+
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// Check password
+	err = utils.CheckPassword(user.HashedPassword, req.Password)
+	if err != nil {
+		ctx.JSON(http.StatusUnauthorized, errorResponse(err))
+		return
+	}
+
+	// Create Auth Token
+	tokenString, err := server.tokenMaker.CreateToken(user.Username, server.config.AccessTokenDuration)
+	if err != nil {
+		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	ctx.JSON(http.StatusOK, loginUserResponse{
+		AccessToken: tokenString,
+		User:        newUserResponse(user),
+	})
 }

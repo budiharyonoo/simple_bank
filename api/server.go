@@ -1,7 +1,10 @@
 package api
 
 import (
+	"fmt"
 	db "github.com/budiharyonoo/simple_bank/db/sqlc"
+	"github.com/budiharyonoo/simple_bank/token"
+	"github.com/budiharyonoo/simple_bank/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
@@ -10,23 +13,35 @@ import (
 
 // Server serves HTTP requests for our service
 type Server struct {
-	store  db.Store
-	router *gin.Engine
+	config     utils.Config
+	store      db.Store
+	router     *gin.Engine
+	tokenMaker token.Maker
 }
 
 // NewServer is a contructor of Server and setup router
-func NewServer(store db.Store) *Server {
-	server := &Server{store: store}
-	router := gin.Default()
+func NewServer(config utils.Config, store db.Store) (*Server, error) {
+	tokenMaker, err := token.NewPasetoMaker()
+	if err != nil {
+		return nil, fmt.Errorf("cannot init token maker %w", err)
+	}
+
+	server := &Server{
+		config:     config,
+		store:      store,
+		tokenMaker: tokenMaker,
+	}
 
 	// Register custom validator to GIN
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		err := v.RegisterValidation("currency", validCurrency)
 		if err != nil {
 			log.Fatalln("Error register custom validator", err)
-			return nil
+			return nil, err
 		}
 	}
+
+	router := gin.Default()
 
 	router.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{"message": "Server is up an running!"})
@@ -42,9 +57,15 @@ func NewServer(store db.Store) *Server {
 
 	// Users Router
 	router.POST("/v1/users", server.createUser)
+	router.POST("/v1/users/login", server.loginUser)
 
 	server.router = router
-	return server
+
+	return server, nil
+}
+
+func (server Server) setupRouter() {
+
 }
 
 // Start runs HTTP Server of specific port
