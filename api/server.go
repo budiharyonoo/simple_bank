@@ -41,19 +41,22 @@ func NewServer(config utils.Config, store db.Store) (*Server, error) {
 		}
 	}
 
+	// === All Router ===
 	router := gin.Default()
-
 	router.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{"message": "Server is up an running!"})
 	})
 
+	// Init auth middleware
+	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
+
 	// Accounts Router
-	router.GET("/v1/accounts/", server.getListAccounts)
-	router.POST("/v1/accounts", server.createAccount)
-	router.GET("/v1/accounts/:id", server.getAccountById)
+	authRoutes.GET("/v1/accounts/", server.getListAccounts)
+	authRoutes.POST("/v1/accounts", server.createAccount)
+	authRoutes.GET("/v1/accounts/:id", server.getAccountById)
 
 	// Transfers Router
-	router.POST("/v1/transfers", server.createTransfer)
+	authRoutes.POST("/v1/transfers", server.createTransfer)
 
 	// Users Router
 	router.POST("/v1/users", server.createUser)
@@ -62,10 +65,6 @@ func NewServer(config utils.Config, store db.Store) (*Server, error) {
 	server.router = router
 
 	return server, nil
-}
-
-func (server Server) setupRouter() {
-
 }
 
 // Start runs HTTP Server of specific port

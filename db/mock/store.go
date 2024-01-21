@@ -188,18 +188,18 @@ func (mr *MockStoreMockRecorder) GetAccountForUpdate(arg0, arg1 any) *gomock.Cal
 }
 
 // GetAccountsTotalRows mocks base method.
-func (m *MockStore) GetAccountsTotalRows(arg0 context.Context) (int64, error) {
+func (m *MockStore) GetAccountsTotalRows(arg0 context.Context, arg1 string) (int64, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetAccountsTotalRows", arg0)
+	ret := m.ctrl.Call(m, "GetAccountsTotalRows", arg0, arg1)
 	ret0, _ := ret[0].(int64)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // GetAccountsTotalRows indicates an expected call of GetAccountsTotalRows.
-func (mr *MockStoreMockRecorder) GetAccountsTotalRows(arg0 any) *gomock.Call {
+func (mr *MockStoreMockRecorder) GetAccountsTotalRows(arg0, arg1 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountsTotalRows", reflect.TypeOf((*MockStore)(nil).GetAccountsTotalRows), arg0)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetAccountsTotalRows", reflect.TypeOf((*MockStore)(nil).GetAccountsTotalRows), arg0, arg1)
 }
 
 // GetEntry mocks base method.

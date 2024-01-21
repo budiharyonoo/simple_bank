@@ -12,7 +12,8 @@ LIMIT 1 FOR NO KEY UPDATE;
 
 -- name: GetAccountsTotalRows :one
 SELECT COUNT(id)
-FROM accounts;
+FROM accounts
+WHERE owner = $1;
 
 -- name: ListAllAccounts :many
 SELECT *
@@ -22,8 +23,9 @@ ORDER BY id;
 -- name: ListAccountsWithPagination :many
 SELECT *
 FROM accounts
+WHERE owner = $1
 ORDER BY id
-LIMIT $1 OFFSET $2;
+LIMIT $2 OFFSET $3;
 
 -- name: CreateAccount :one
 INSERT INTO accounts (owner, balance, currency)
