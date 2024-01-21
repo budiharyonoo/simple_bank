@@ -50,15 +50,15 @@ jobs:
           sudo mv migrate /usr/bin/migrate
           which migrate
 
-      - name: Create .env file
-        run: |
-          echo "DB_DRIVER=${{ secrets.DB_DRIVER }}" > .env
-          echo "DB_SOURCE=${{ secrets.DB_SOURCE }}" > .env
-          echo "SERVER_ADDRESS=${{ secrets.SERVER_ADDRESS }}" > .env
-          
-      - name: Display .env Content
-        run: |
-          cat .env
+#      - name: Create .env file
+#        run: |
+#          echo "DB_DRIVER=${{ secrets.DB_DRIVER }}" > .env
+#          echo "DB_SOURCE=${{ secrets.DB_SOURCE }}" > .env
+#          echo "SERVER_ADDRESS=${{ secrets.SERVER_ADDRESS }}" > .env
+#          
+#      - name: Display .env Content
+#        run: |
+#          cat .env
 
       - name: Run migration
         run: make migrateup
