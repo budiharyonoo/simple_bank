@@ -113,10 +113,11 @@ func (q *Queries) GetAccountForUpdate(ctx context.Context, id int64) (Account, e
 const getAccountsTotalRows = `-- name: GetAccountsTotalRows :one
 SELECT COUNT(id)
 FROM accounts
+WHERE owner = $1
 `
 
-func (q *Queries) GetAccountsTotalRows(ctx context.Context) (int64, error) {
-	row := q.db.QueryRowContext(ctx, getAccountsTotalRows)
+func (q *Queries) GetAccountsTotalRows(ctx context.Context, owner string) (int64, error) {
+	row := q.db.QueryRowContext(ctx, getAccountsTotalRows, owner)
 	var count int64
 	err := row.Scan(&count)
 	return count, err
@@ -125,17 +126,19 @@ func (q *Queries) GetAccountsTotalRows(ctx context.Context) (int64, error) {
 const listAccountsWithPagination = `-- name: ListAccountsWithPagination :many
 SELECT id, owner, balance, currency, created_at
 FROM accounts
+WHERE owner = $1
 ORDER BY id
-LIMIT $1 OFFSET $2
+LIMIT $2 OFFSET $3
 `
 
 type ListAccountsWithPaginationParams struct {
-	Limit  int32 `json:"limit"`
-	Offset int32 `json:"offset"`
+	Owner  string `json:"owner"`
+	Limit  int32  `json:"limit"`
+	Offset int32  `json:"offset"`
 }
 
 func (q *Queries) ListAccountsWithPagination(ctx context.Context, arg ListAccountsWithPaginationParams) ([]Account, error) {
-	rows, err := q.db.QueryContext(ctx, listAccountsWithPagination, arg.Limit, arg.Offset)
+	rows, err := q.db.QueryContext(ctx, listAccountsWithPagination, arg.Owner, arg.Limit, arg.Offset)
 	if err != nil {
 		return nil, err
 	}

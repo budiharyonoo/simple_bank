@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	db "github.com/budiharyonoo/simple_bank/db/sqlc"
+	"github.com/budiharyonoo/simple_bank/token"
 	"github.com/gin-gonic/gin"
 	"github.com/lib/pq"
 	"net/http"
@@ -24,15 +25,19 @@ func (server Server) getListAccounts(ctx *gin.Context) {
 		return
 	}
 
+	// Get auth payload data and convert as payload struct
+	authPayload := ctx.MustGet(authPayloadKey).(*token.Payload)
+
 	// Fetch number of total accounts rows
-	totalRows, err := server.store.GetAccountsTotalRows(ctx)
+	totalRows, err := server.store.GetAccountsTotalRows(ctx, authPayload.Username)
 	if err != nil {
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
 		return
 	}
 
-	// Fetch list of accounts with pagination
+	// Fetch list of accounts by owner with pagination
 	accounts, err := server.store.ListAccountsWithPagination(ctx, db.ListAccountsWithPaginationParams{
+		Owner:  authPayload.Username,
 		Limit:  req.Limit,
 		Offset: (req.Page - 1) * req.Limit,
 	})
@@ -46,7 +51,6 @@ func (server Server) getListAccounts(ctx *gin.Context) {
 
 // CreateAccountRequest used for input payload request and validation
 type CreateAccountRequest struct {
-	Owner    string `json:"owner" binding:"required"`
 	Currency string `json:"currency" binding:"required,currency"`
 }
 
@@ -59,9 +63,12 @@ func (server Server) createAccount(ctx *gin.Context) {
 		return
 	}
 
+	// Get auth payload data and convert as payload struct
+	authPayload := ctx.MustGet(authPayloadKey).(*token.Payload)
+
 	// Create Account to DB
 	account, err := server.store.CreateAccount(ctx, db.CreateAccountParams{
-		Owner:    req.Owner,
+		Owner:    authPayload.Username,
 		Balance:  0,
 		Currency: req.Currency,
 	})
@@ -108,6 +115,14 @@ func (server Server) getAccountById(ctx *gin.Context) {
 		}
 
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
+		return
+	}
+
+	// Get auth payload data and convert as payload struct
+	authPayload := ctx.MustGet(authPayloadKey).(*token.Payload)
+	if account.Owner != authPayload.Username {
+		err := errors.New("account doesn't belong to the authenticated user")
+		ctx.JSON(http.StatusForbidden, errorResponse(err))
 		return
 	}
 

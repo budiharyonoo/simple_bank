@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	db "github.com/budiharyonoo/simple_bank/db/sqlc"
+	"github.com/budiharyonoo/simple_bank/token"
 	"github.com/gin-gonic/gin"
 	"net/http"
 )
@@ -26,9 +27,21 @@ func (server Server) createTransfer(ctx *gin.Context) {
 		return
 	}
 
-	// Validate if the FROM & TO Account's exists and has the same currency
-	if !server.validateAccount(ctx, req.FromAccountID, "FROM", req.Currency) ||
-		!server.validateAccount(ctx, req.ToAccountID, "TO", req.Currency) {
+	fromAccount, valid := server.validateAccount(ctx, req.FromAccountID, "FROM", req.Currency)
+	if !valid {
+		return
+	}
+
+	// Validate Owner and Auth Token Username must be the same
+	authPayload := ctx.MustGet(authPayloadKey).(*token.Payload)
+	if fromAccount.Owner != authPayload.Username {
+		err := errors.New("from account doesn't belong to the authenticated user")
+		ctx.JSON(http.StatusForbidden, errorResponse(err))
+		return
+	}
+
+	_, valid = server.validateAccount(ctx, req.ToAccountID, "TO", req.Currency)
+	if !valid {
 		return
 	}
 
@@ -48,28 +61,32 @@ func (server Server) createTransfer(ctx *gin.Context) {
 }
 
 // validateAccount used for validate if the FROM & TO Account's exists and has the same currency
-func (server Server) validateAccount(ctx *gin.Context, accountID int64, sourceAccount string, currency string) bool {
+func (server Server) validateAccount(
+	ctx *gin.Context,
+	accountID int64,
+	sourceAccount string,
+	currency string,
+) (db.Account, bool) {
 	// Fetch single account by Id
 	account, err := server.store.GetAccount(ctx, accountID)
 	if err != nil {
 		// If account not exists
 		if errors.Is(sql.ErrNoRows, err) {
-			ctx.JSON(http.StatusNotFound, errorResponse(err))
-			return false
+			errMsg := fmt.Sprintf("%s account [%d] not found", sourceAccount, accountID)
+			ctx.JSON(http.StatusNotFound, errorResponse(errors.New(errMsg)))
+			return account, false
 		}
 
 		ctx.JSON(http.StatusInternalServerError, errorResponse(err))
-		return false
+		return account, false
 	}
 
 	if account.Currency != currency {
-		errMsg := fmt.Sprintf(
-			"The %s account [%d] currency is %s, not %s", sourceAccount, accountID, account.Currency, currency,
-		)
+		errMsg := fmt.Sprintf("The %s account [%d] currency is %s, not %s", sourceAccount, accountID, account.Currency, currency)
 		err := errors.New(errMsg)
 		ctx.JSON(http.StatusBadRequest, errorResponse(err))
-		return false
+		return account, false
 	}
 
-	return true
+	return account, true
 }

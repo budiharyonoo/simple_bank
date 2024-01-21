@@ -1,7 +1,10 @@
 package api
 
 import (
+	"fmt"
 	db "github.com/budiharyonoo/simple_bank/db/sqlc"
+	"github.com/budiharyonoo/simple_bank/token"
+	"github.com/budiharyonoo/simple_bank/utils"
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
@@ -10,38 +13,58 @@ import (
 
 // Server serves HTTP requests for our service
 type Server struct {
-	store  db.Store
-	router *gin.Engine
+	config     utils.Config
+	store      db.Store
+	router     *gin.Engine
+	tokenMaker token.Maker
 }
 
 // NewServer is a contructor of Server and setup router
-func NewServer(store db.Store) *Server {
-	server := &Server{store: store}
-	router := gin.Default()
+func NewServer(config utils.Config, store db.Store) (*Server, error) {
+	tokenMaker, err := token.NewPasetoMaker()
+	if err != nil {
+		return nil, fmt.Errorf("cannot init token maker %w", err)
+	}
+
+	server := &Server{
+		config:     config,
+		store:      store,
+		tokenMaker: tokenMaker,
+	}
 
 	// Register custom validator to GIN
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		err := v.RegisterValidation("currency", validCurrency)
 		if err != nil {
 			log.Fatalln("Error register custom validator", err)
-			return nil
+			return nil, err
 		}
 	}
 
+	// === All Router ===
+	router := gin.Default()
 	router.GET("/", func(ctx *gin.Context) {
 		ctx.JSON(200, gin.H{"message": "Server is up an running!"})
 	})
 
+	// Init auth middleware
+	authRoutes := router.Group("/").Use(authMiddleware(server.tokenMaker))
+
 	// Accounts Router
-	router.GET("/v1/accounts/", server.getListAccounts)
-	router.POST("/v1/accounts", server.createAccount)
-	router.GET("/v1/accounts/:id", server.getAccountById)
+	authRoutes.GET("/v1/accounts/", server.getListAccounts)
+	authRoutes.POST("/v1/accounts", server.createAccount)
+	authRoutes.GET("/v1/accounts/:id", server.getAccountById)
 
 	// Transfers Router
-	router.POST("/v1/transfers", server.createTransfer)
+	authRoutes.POST("/v1/transfers", server.createTransfer)
+
+	// Users Router
+	router.POST("/v1/users", server.createUser)
+	router.POST("/v1/users/login", server.loginUser)
 
 	server.router = router
-	return server
+
+	return server, nil
 }
 
 // Start runs HTTP Server of specific port

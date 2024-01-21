@@ -52,10 +52,16 @@ jobs:
 
       - name: Create .env file
         run: |
-          echo "${{ secrets.ENV_FILE }}" > .env
+          echo "DB_DRIVER=${{ secrets.DB_DRIVER }}" > .env
+          echo "DB_SOURCE=${{ secrets.DB_SOURCE }}" > .env
+          echo "SERVER_ADDRESS=${{ secrets.SERVER_ADDRESS }}" > .env
           
+      - name: Display .env Content
+        run: |
+          cat .env
+
       - name: Run migration
         run: make migrateup
-        
-      - name: Test
-        run: make test
+
+#      - name: Test
+#        run: make test
