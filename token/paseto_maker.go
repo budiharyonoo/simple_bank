@@ -26,13 +26,18 @@ func NewPasetoMaker() (Maker, error) {
 	return &PasetoMaker{paseto.NewV2(), []byte(config.JWTSecret)}, nil
 }
 
-func (m PasetoMaker) CreateToken(username string, duration time.Duration) (string, error) {
+func (m PasetoMaker) CreateToken(username string, duration time.Duration) (string, *Payload, error) {
 	payload, err := NewPayload(username, duration, "PASETO")
 	if err != nil {
-		return "", err
+		return "", payload, err
 	}
 
-	return m.paseto.Encrypt(m.symmetricKey, payload, nil)
+	token, err := m.paseto.Encrypt(m.symmetricKey, payload, nil)
+	if err != nil {
+		return "", payload, err
+	}
+
+	return token, payload, nil
 }
 
 func (m PasetoMaker) VerifyToken(token string) (*Payload, error) {

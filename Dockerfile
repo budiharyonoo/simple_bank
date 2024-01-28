@@ -8,6 +8,7 @@ RUN go build -o main
 FROM golang:1.20-alpine
 WORKDIR /app
 COPY --from=builder /app/main .
+COPY .env .
 
 EXPOSE 8080
 

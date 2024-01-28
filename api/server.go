@@ -61,6 +61,7 @@ func NewServer(config utils.Config, store db.Store) (*Server, error) {
 	// Users Router
 	router.POST("/v1/users", server.createUser)
 	router.POST("/v1/users/login", server.loginUser)
+	router.POST("/v1/users/refresh-token", server.renewAccessToken)
 
 	server.router = router
 
