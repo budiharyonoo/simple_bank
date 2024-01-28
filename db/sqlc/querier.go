@@ -6,6 +6,8 @@ package db
 
 import (
 	"context"
+
+	"github.com/google/uuid"
 )
 
 type Querier interface {
@@ -22,7 +24,7 @@ type Querier interface {
 	GetAccountForUpdate(ctx context.Context, id int64) (Account, error)
 	GetAccountsTotalRows(ctx context.Context, owner string) (int64, error)
 	GetEntry(ctx context.Context, id int64) (Entry, error)
-	GetSession(ctx context.Context, username string) (Session, error)
+	GetSession(ctx context.Context, id uuid.UUID) (Session, error)
 	GetTransfer(ctx context.Context, id int64) (Transfer, error)
 	GetUser(ctx context.Context, username string) (User, error)
 	ListAccountsWithPagination(ctx context.Context, arg ListAccountsWithPaginationParams) ([]Account, error)

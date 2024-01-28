@@ -18,7 +18,7 @@ func TestPasetoMaker(t *testing.T) {
 	expiredAt := issuedAt.Add(tokenDuration)
 
 	// Create token
-	tokenString, err := maker.CreateToken(username, tokenDuration)
+	tokenString, _, err := maker.CreateToken(username, tokenDuration)
 	require.NoError(t, err)
 	require.NotEmpty(t, tokenString)
 
